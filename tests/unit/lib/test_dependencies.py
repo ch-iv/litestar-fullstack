@@ -16,7 +16,7 @@ from advanced_alchemy.filters import (
 )
 from litestar import Litestar, get
 from litestar.params import Dependency
-from litestar.testing import RequestFactory, TestClient
+from litestar.testing import AsyncTestClient, RequestFactory
 
 from app.domain import security
 from app.domain.accounts.models import User
@@ -33,7 +33,6 @@ class MessageTest:
     test_attr: str
 
 
-@pytest.mark.anyio
 async def test_provide_user_dependency() -> None:
     user = User()
     request = RequestFactory(app=Litestar(route_handlers=[])).get("/", user=user)
@@ -96,7 +95,7 @@ def test_limit_offset_pagination() -> None:
     assert dependencies.provide_limit_offset_pagination(10, 100) == LimitOffset(100, 900)
 
 
-def test_provided_filters(app: Litestar, client: TestClient) -> None:
+async def test_provided_filters(app: Litestar, client: AsyncTestClient) -> None:
     called = False
     path = f"/{uuid4()}"
     ids = [uuid4() for _ in range(2)]
@@ -120,7 +119,7 @@ def test_provided_filters(app: Litestar, client: TestClient) -> None:
         return MessageTest(test_attr="yay")
 
     app.register(filtered_collection_route)
-    _response = client.get(
+    _response = await client.get(
         path,
         params={
             "createdBefore": datetime.max.isoformat(),
@@ -135,7 +134,7 @@ def test_provided_filters(app: Litestar, client: TestClient) -> None:
     assert called
 
 
-def test_filters_dependency(app: "Litestar", client: "TestClient") -> None:
+async def test_filters_dependency(app: "Litestar", client: "AsyncTestClient") -> None:
     called = False
     path = f"/{uuid4()}"
     ids = [uuid4() for _ in range(2)]
@@ -156,7 +155,7 @@ def test_filters_dependency(app: "Litestar", client: "TestClient") -> None:
 
     app.debug = True
     app.register(filtered_collection_route)
-    _response = client.get(
+    _response = await client.get(
         path,
         params={
             "createdBefore": datetime.max.isoformat(),
@@ -174,7 +173,7 @@ def test_filters_dependency(app: "Litestar", client: "TestClient") -> None:
     assert called
 
 
-def test_filters_dependency_no_ids(app: "Litestar", client: "TestClient") -> None:
+async def test_filters_dependency_no_ids(app: "Litestar", client: "AsyncTestClient") -> None:
     called = False
     path = f"/{uuid4()}"
     [uuid4() for _ in range(2)]
@@ -194,7 +193,7 @@ def test_filters_dependency_no_ids(app: "Litestar", client: "TestClient") -> Non
 
     app.debug = True
     app.register(filtered_collection_route)
-    _response = client.get(
+    _response = await client.get(
         path,
         params={
             "createdBefore": datetime.max.isoformat(),

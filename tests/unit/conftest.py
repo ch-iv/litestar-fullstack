@@ -6,11 +6,24 @@ import pytest
 from litestar import Litestar, get
 from litestar.datastructures import State
 from litestar.enums import ScopeType
+from litestar.testing import AsyncTestClient
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
     from litestar.types import HTTPResponseBodyEvent, HTTPResponseStartEvent, HTTPScope
 
 pytestmark = pytest.mark.anyio
+
+
+@pytest.fixture(name="client")
+async def fx_client(app: Litestar) -> AsyncGenerator[AsyncTestClient, None]:
+    """Test client fixture for making calls on the global app instance."""
+    try:
+        async with AsyncTestClient(app=app) as client:
+            yield client
+    except Exception:  # noqa: BLE001
+        ...
 
 
 @pytest.fixture()
