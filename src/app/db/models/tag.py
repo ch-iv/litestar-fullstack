@@ -4,14 +4,13 @@ from typing import TYPE_CHECKING
 
 from advanced_alchemy.base import SlugKey, UUIDAuditBase
 from advanced_alchemy.mixins import UniqueMixin
+from advanced_alchemy.utils.text import slugify
 from sqlalchemy import (
     ColumnElement,
     String,
     Table,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.utils import slugify
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
@@ -22,7 +21,7 @@ if TYPE_CHECKING:
 class Tag(UUIDAuditBase, SlugKey, UniqueMixin):
     """Tag."""
 
-    __tablename__ = "tag"  # type: ignore[assignment]
+    __tablename__ = "tag"
     name: Mapped[str] = mapped_column(index=False)
     description: Mapped[str | None] = mapped_column(String(length=255), index=False, nullable=True)
 
