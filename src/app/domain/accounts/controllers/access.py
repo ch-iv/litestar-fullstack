@@ -1,8 +1,10 @@
 """User Account Controllers."""
+
 from __future__ import annotations
 
 from typing import Annotated
 
+from advanced_alchemy.utils.text import slugify
 from litestar import Controller, Request, Response, get, post
 from litestar.di import Provide
 from litestar.enums import RequestEncodingType
@@ -15,7 +17,6 @@ from app.domain.accounts.dependencies import provide_roles_service, provide_user
 from app.domain.accounts.guards import auth, requires_active_user
 from app.domain.accounts.schemas import AccountLogin, AccountRegister, User
 from app.domain.accounts.services import RoleService, UserService
-from app.utils import slugify
 
 
 class AccessController(Controller):
@@ -60,10 +61,18 @@ class AccessController(Controller):
     async def logout(
         self,
         request: Request,
-    ) -> None:
+    ) -> Response:
         """Account Logout"""
         request.cookies.pop(auth.key, None)
         request.clear_session()
+
+        response = Response(
+            {"message": "OK"},
+            status_code=200,
+        )
+        response.delete_cookie(auth.key)
+
+        return response
 
     @post(
         operation_id="AccountRegister",
@@ -87,7 +96,7 @@ class AccessController(Controller):
             user_data.update({"role_id": role_obj.id})
         user = await users_service.create(user_data)
         request.app.emit(event_id="user_created", user_id=user.id)
-        return users_service.to_schema(User, user)
+        return users_service.to_schema(user, schema_type=User)
 
     @get(
         operation_id="AccountProfile",
@@ -99,4 +108,4 @@ class AccessController(Controller):
     )
     async def profile(self, request: Request, current_user: UserModel, users_service: UserService) -> User:
         """User Profile."""
-        return users_service.to_schema(User, current_user)
+        return users_service.to_schema(current_user, schema_type=User)

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from uuid import UUID  # noqa: TCH003
 
 from advanced_alchemy.base import UUIDAuditBase
 from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.ext.associationproxy import AssociationProxy, association_proxy
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from uuid_utils import UUID  # noqa: TCH002
 
 if TYPE_CHECKING:
     from .user import User
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class UserOauthAccount(UUIDAuditBase):
     """User Oauth Account"""
 
-    __tablename__ = "user_account_oauth"  # type: ignore[assignment]
+    __tablename__ = "user_account_oauth"
     __table_args__ = {"comment": "Registered OAUTH2 Accounts for Users"}
     __pii_columns__ = {"oauth_name", "account_email", "account_id"}
 

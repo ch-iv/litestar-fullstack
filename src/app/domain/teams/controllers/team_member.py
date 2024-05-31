@@ -1,4 +1,5 @@
 """User Account Controllers."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -17,7 +18,7 @@ from app.domain.teams.schemas import Team, TeamMemberModify
 from app.domain.teams.services import TeamMemberService, TeamService
 
 if TYPE_CHECKING:
-    from uuid_utils import UUID
+    from uuid import UUID
 
 
 class TeamMemberController(Controller):
@@ -59,7 +60,7 @@ class TeamMemberController(Controller):
             raise IntegrityError(msg)
         team_obj.members.append(TeamMember(user_id=user_obj.id, role=TeamRoles.MEMBER))
         team_obj = await teams_service.update(item_id=team_id, data=team_obj)
-        return teams_service.to_schema(Team, team_obj)
+        return teams_service.to_schema(schema_type=Team, data=team_obj)
 
     @post(
         operation_id="RemoveMemberFromTeam",
@@ -90,4 +91,4 @@ class TeamMemberController(Controller):
             msg = "User is not a member of this team."
             raise IntegrityError(msg)
         team_obj = await teams_service.get(team_id)
-        return teams_service.to_schema(Team, team_obj)
+        return teams_service.to_schema(schema_type=Team, data=team_obj)

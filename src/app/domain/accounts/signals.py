@@ -10,7 +10,7 @@ from app.config.app import alchemy
 from .dependencies import provide_users_service
 
 if TYPE_CHECKING:
-    from uuid_utils import UUID
+    from uuid import UUID
 
 logger = structlog.get_logger()
 
@@ -31,4 +31,4 @@ async def user_created_event_handler(
         if obj is None:
             await logger.aerror("Could not locate the specified user", id=user_id)
         else:
-            await logger.info("Found user", **obj.to_dict(exclude={"hashed_password"}))
+            await logger.ainfo("Found user", **obj.to_dict(exclude={"hashed_password"}))

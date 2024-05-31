@@ -13,11 +13,12 @@ from app.domain.tags.dtos import TagCreateDTO, TagDTO, TagUpdateDTO
 from app.domain.tags.services import TagService
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from advanced_alchemy.filters import FilterTypes
+    from advanced_alchemy.service import OffsetPagination
     from litestar.dto import DTOData
-    from litestar.pagination import OffsetPagination
     from litestar.params import Dependency, Parameter
-    from uuid_utils import UUID
 
 
 class TagController(Controller):
@@ -43,7 +44,7 @@ class TagController(Controller):
     ) -> OffsetPagination[Tag]:
         """List tags."""
         results, total = await tags_service.list_and_count(*filters)
-        return tags_service.to_dto(results, total, *filters)
+        return tags_service.to_schema(data=results, total=total, filters=filters)
 
     @get(
         operation_id="GetTag",
@@ -62,9 +63,9 @@ class TagController(Controller):
             ),
         ],
     ) -> Tag:
-        """Get a new migration tag."""
+        """Get a tag."""
         db_obj = await tags_service.get(tag_id)
-        return tags_service.to_dto(db_obj)
+        return tags_service.to_schema(db_obj)
 
     @post(
         operation_id="CreateTag",
@@ -83,7 +84,7 @@ class TagController(Controller):
     ) -> Tag:
         """Create a new tag."""
         db_obj = await tags_service.create(data.create_instance())
-        return tags_service.to_dto(db_obj)
+        return tags_service.to_schema(db_obj)
 
     @patch(
         operation_id="UpdateTag",
@@ -106,7 +107,7 @@ class TagController(Controller):
     ) -> Tag:
         """Update a tag."""
         db_obj = await tags_service.update(item_id=tag_id, data=data.create_instance())
-        return tags_service.to_dto(db_obj)
+        return tags_service.to_schema(db_obj)
 
     @delete(
         operation_id="DeleteTag",
@@ -128,5 +129,5 @@ class TagController(Controller):
             ),
         ],
     ) -> None:
-        """Create a new migration tag."""
+        """Delete a tag."""
         _ = await tags_service.delete(tag_id)

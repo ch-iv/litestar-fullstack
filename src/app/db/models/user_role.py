@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
+from uuid import UUID  # noqa: TCH003
 
 from advanced_alchemy.base import UUIDAuditBase
 from sqlalchemy import ForeignKey
 from sqlalchemy.ext.associationproxy import AssociationProxy, association_proxy
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from uuid_utils import UUID  # noqa: TCH002
 
 if TYPE_CHECKING:
     from .role import Role
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 class UserRole(UUIDAuditBase):
     """User Role."""
 
-    __tablename__ = "user_account_role"  # type: ignore[assignment]
+    __tablename__ = "user_account_role"
     __table_args__ = {"comment": "Links a user to a specific role."}
     user_id: Mapped[UUID] = mapped_column(ForeignKey("user_account.id", ondelete="cascade"), nullable=False)
     role_id: Mapped[UUID] = mapped_column(ForeignKey("role.id", ondelete="cascade"), nullable=False)

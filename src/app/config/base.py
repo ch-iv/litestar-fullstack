@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 import binascii
+import json
 import os
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
 
+from advanced_alchemy.utils.text import slugify
 from litestar.serialization import decode_json, encode_json
+from litestar.utils.module_loader import module_to_os_path
 from redis.asyncio import Redis
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.pool import NullPool
-
-from app.utils import module_to_os_path, slugify
 
 if TYPE_CHECKING:
     from litestar.data_extractors import RequestExtractorField, ResponseExtractorField
@@ -70,7 +71,7 @@ class DatabaseSettings:
     def get_engine(self) -> AsyncEngine:
         if self._engine_instance is not None:
             return self._engine_instance
-        if self.URL.startswith("postgres"):
+        if self.URL.startswith("postgresql+asyncpg"):
             engine = create_async_engine(
                 url=self.URL,
                 future=True,
@@ -128,7 +129,7 @@ class DatabaseSettings:
                         format="binary",
                     ),
                 )
-        elif self.URL.startswith("sqlite"):
+        elif self.URL.startswith("sqlite+aiosqlite"):
             engine = create_async_engine(
                 url=self.URL,
                 future=True,
@@ -136,9 +137,6 @@ class DatabaseSettings:
                 json_deserializer=decode_json,
                 echo=self.ECHO,
                 echo_pool=self.ECHO_POOL,
-                max_overflow=self.POOL_MAX_OVERFLOW,
-                pool_size=self.POOL_SIZE,
-                pool_timeout=self.POOL_TIMEOUT,
                 pool_recycle=self.POOL_RECYCLE,
                 pool_pre_ping=self.POOL_PRE_PING,
             )
@@ -153,7 +151,7 @@ class DatabaseSettings:
                 dbapi_connection.isolation_level = None
 
             @event.listens_for(engine.sync_engine, "begin")
-            def _sqla_on_begin(dbapi_connection: Any, _: Any) -> Any:  # pragma: no cover
+            def _sqla_on_begin(dbapi_connection: Any) -> Any:  # pragma: no cover
                 """Emits a custom begin"""
                 dbapi_connection.exec_driver_sql("BEGIN")
         else:
@@ -408,13 +406,20 @@ class AppSettings:
         return slugify(self.NAME)
 
     def __post_init__(self) -> None:
+        # Check if the ALLOWED_CORS_ORIGINS is a string.
         if isinstance(self.ALLOWED_CORS_ORIGINS, str):
-            if not self.ALLOWED_CORS_ORIGINS.startswith("["):
+            # Check if the string starts with "[" and ends with "]", indicating a list.
+            if self.ALLOWED_CORS_ORIGINS.startswith("[") and self.ALLOWED_CORS_ORIGINS.endswith("]"):
+                try:
+                    # Safely evaluate the string as a Python list.
+                    self.ALLOWED_CORS_ORIGINS = json.loads(self.ALLOWED_CORS_ORIGINS)
+                except (SyntaxError, ValueError):
+                    # Handle potential errors if the string is not a valid Python literal.
+                    msg = "ALLOWED_CORS_ORIGINS is not a valid list representation."
+                    raise ValueError(msg) from None
+            else:
+                # Split the string by commas into a list if it is not meant to be a list representation.
                 self.ALLOWED_CORS_ORIGINS = [host.strip() for host in self.ALLOWED_CORS_ORIGINS.split(",")]
-            elif self.ALLOWED_CORS_ORIGINS.startswith(
-                "[",
-            ) and self.ALLOWED_CORS_ORIGINS.endswith("]"):
-                self.ALLOWED_CORS_ORIGINS = list(self.ALLOWED_CORS_ORIGINS)
 
 
 @dataclass

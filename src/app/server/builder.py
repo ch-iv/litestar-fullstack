@@ -3,11 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypeVar
 
-from litestar.config.app import ExperimentalFeatures
 from litestar.config.response_cache import ResponseCacheConfig, default_cache_key_builder
-from litestar.dto import DTOData
-from litestar.pagination import OffsetPagination
-from litestar.params import Dependency, Parameter
 from litestar.plugins import CLIPluginProtocol, InitPluginProtocol
 from litestar.security.jwt import OAuth2Login
 from litestar.stores.redis import RedisStore
@@ -46,8 +42,6 @@ class ApplicationConfigurator(InitPluginProtocol, CLIPluginProtocol):
         self.app_slug = settings.app.slug
         cli.add_command(user_management_app)
 
-        return super().on_cli_init(cli)
-
     def on_app_init(self, app_config: AppConfig) -> AppConfig:
         """Configure application for use with SQLAlchemy.
 
@@ -57,7 +51,6 @@ class ApplicationConfigurator(InitPluginProtocol, CLIPluginProtocol):
 
         from advanced_alchemy.exceptions import RepositoryError
         from litestar.security.jwt import Token
-        from uuid_utils import UUID
 
         from app.config import constants, get_settings
         from app.db.models import User as UserModel
@@ -72,21 +65,17 @@ class ApplicationConfigurator(InitPluginProtocol, CLIPluginProtocol):
         )
         app_config.stores = StoreRegistry(default_factory=self.redis_store_factory)
         app_config.on_shutdown.append(self.redis.aclose)  # type: ignore[attr-defined]
-        app_config.signature_types = [
-            Token,
-            DTOData,
-            OffsetPagination,
-            OAuth2Login,
-            UserModel,
-            Dependency,
-            Parameter,
-        ]
-        app_config.experimental_features = [ExperimentalFeatures.DTO_CODEGEN]
+        app_config.signature_namespace.update(
+            {
+                "Token": Token,
+                "OAuth2Login": OAuth2Login,
+                "UserModel": UserModel,
+            },
+        )
         app_config.exception_handlers = {
             ApplicationError: exception_to_http_response,
             RepositoryError: exception_to_http_response,
         }
-        app_config.type_decoders = [*(app_config.type_decoders or []), (lambda x: x is UUID, lambda t, v: t(str(v)))]
         return app_config
 
     def redis_store_factory(self, name: str) -> RedisStore:

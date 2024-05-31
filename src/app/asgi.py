@@ -15,7 +15,6 @@ def create_app() -> Litestar:
 
     from litestar import Litestar
     from litestar.di import Provide
-    from uuid_utils import UUID
 
     from app.config import app as config
     from app.config import constants
@@ -45,7 +44,6 @@ def create_app() -> Litestar:
             plugins.saq,
             plugins.granian,
         ],
-        signature_namespace={"UUID": UUID},
         on_app_init=[auth.on_app_init],
         listeners=[account_signals.user_created_event_handler, team_signals.team_created_event_handler],
     )

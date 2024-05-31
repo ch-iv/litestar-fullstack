@@ -16,13 +16,14 @@ async def load_database_fixtures() -> None:
 
     from pathlib import Path
 
+    from advanced_alchemy.utils.fixtures import open_fixture_async
     from sqlalchemy import select
     from sqlalchemy.orm import load_only
     from structlog import get_logger
 
     from app.config import get_settings
+    from app.config.app import alchemy
     from app.db.models import Role
-    from app.db.utils import open_fixture
     from app.domain.accounts.services import RoleService
 
     settings = get_settings()
@@ -30,8 +31,9 @@ async def load_database_fixtures() -> None:
     fixtures_path = Path(settings.db.FIXTURE_PATH)
     async with RoleService.new(
         statement=select(Role).options(load_only(Role.id, Role.slug, Role.name, Role.description)),
+        config=alchemy,
     ) as service:
-        fixture_data = open_fixture(fixtures_path, "role")
+        fixture_data = await open_fixture_async(fixtures_path, "role")
         await service.upsert_many(match_fields=["name"], data=fixture_data, auto_commit=True)
         await logger.ainfo("loaded roles")
 
@@ -127,13 +129,14 @@ def promote_to_superuser(email: str) -> None:
     import anyio
     from rich import get_console
 
+    from app.config.app import alchemy
     from app.domain.accounts.schemas import UserUpdate
     from app.domain.accounts.services import UserService
 
     console = get_console()
 
     async def _promote_to_superuser(email: str) -> None:
-        async with UserService.new() as users_service:
+        async with UserService.new(config=alchemy) as users_service:
             user = await users_service.get_one_or_none(email=email)
             if user:
                 console.print(f"Promoting user: %{user.email}")
@@ -143,7 +146,7 @@ def promote_to_superuser(email: str) -> None:
                 )
                 user = await users_service.update(
                     item_id=user.id,
-                    data=user_in.__dict__,
+                    data=user_in.to_dict(),
                     auto_commit=True,
                 )
                 console.print(f"Upgraded {email} to superuser")
@@ -162,12 +165,12 @@ def create_default_roles() -> None:
         email (str): The email address of the user to promote.
     """
     import anyio
+    from advanced_alchemy.utils.text import slugify
     from rich import get_console
 
     from app.config.app import alchemy
     from app.db.models import UserRole
     from app.domain.accounts.dependencies import provide_roles_service, provide_users_service
-    from app.utils import slugify
 
     console = get_console()
 

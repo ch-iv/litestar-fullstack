@@ -10,7 +10,7 @@ from app.config.app import alchemy
 from .dependencies import provide_teams_service
 
 if TYPE_CHECKING:
-    from uuid_utils import UUID
+    from uuid import UUID
 
 logger = structlog.get_logger()
 
@@ -31,4 +31,4 @@ async def team_created_event_handler(
         if obj is None:
             await logger.aerror("Could not locate the specified team", id=team_id)
         else:
-            await logger.info("Found team", **obj.to_dict())
+            await logger.ainfo("Found team", **obj.to_dict())
